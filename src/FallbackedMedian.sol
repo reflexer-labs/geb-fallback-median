@@ -126,4 +126,10 @@ contract FallbackedMedian is GebMath {
           return (aggregatorPrice, true);
         }
     }
+
+    // --- Median Updates ---
+    /*
+    * @notice Remnant from older medians
+    */
+    function updateResult(address feeReceiver) external {}
 }
