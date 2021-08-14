@@ -1,6 +1,6 @@
 pragma solidity 0.6.7;
 
-import "geb-treasury-reimbursement/math/GebMath.sol";
+import "../math/GebMath.sol";
 
 import "../medians/ChainlinkMedian.sol";
 
@@ -17,7 +17,7 @@ contract ChainlinkResolver is GebMath {
 
     constructor(
       address median,
-      uint256 multiplier_,
+      uint8   multiplier_,
       uint256 staleThreshold_
     ) public {
         require(median != address(0), "ChainlinkResolver/null-median");
@@ -26,7 +26,7 @@ contract ChainlinkResolver is GebMath {
 
         multiplier      = multiplier_;
         staleThreshold  = staleThreshold_;
-        makerkMedian    = ChainlinkMedian(median);
+        chainlinkMedian = ChainlinkMedian(median);
     }
 
     // --- General Utils ---
@@ -43,10 +43,10 @@ contract ChainlinkResolver is GebMath {
         require(address(chainlinkMedian) != address(0), "ChainlinkResolver/null-median");
 
         // Fetch values from Chainlink
-        uint256 medianPrice         = multiply(uint(chainlinkMedian.latestAnswer()), 10 ** uint(multiplier));
-        uint256 aggregatorTimestamp = chainlinkMedian.latestTimestamp();
+        uint256 medianPrice     = multiply(uint(chainlinkMedian.latestAnswer()), 10 ** uint(multiplier));
+        uint256 medianTimestamp = chainlinkMedian.latestTimestamp();
 
-        require(both(medianPrice > 0, subtract(now, aggregatorTimestamp) <= staleThreshold), "ChainlinkResolver/invalid-price-feed");
+        require(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), "ChainlinkResolver/invalid-price-feed");
         return medianPrice;
     }
     /**
@@ -56,9 +56,9 @@ contract ChainlinkResolver is GebMath {
         if (address(chainlinkMedian) == address(0)) return (0, false);
 
         // Fetch values from Chainlink
-        uint256 medianPrice         = multiply(uint(chainlinkMedian.latestAnswer()), 10 ** uint(multiplier));
-        uint256 aggregatorTimestamp = chainlinkMedian.latestTimestamp();
+        uint256 medianPrice     = multiply(uint(chainlinkMedian.latestAnswer()), 10 ** uint(multiplier));
+        uint256 medianTimestamp = chainlinkMedian.latestTimestamp();
 
-        return (medianPrice, both(medianPrice > 0, subtract(now, aggregatorTimestamp) <= staleThreshold));
+        return (medianPrice, both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold));
     }
 }

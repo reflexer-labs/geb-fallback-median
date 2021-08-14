@@ -1,6 +1,6 @@
 pragma solidity 0.6.7;
 
-interface AggregatorInterface {
+interface ChainlinkMedian {
     event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 timestamp);
     event NewRound(uint256 indexed roundId, address indexed startedBy, uint256 startedAt);
 

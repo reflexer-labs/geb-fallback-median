@@ -1,6 +1,6 @@
 pragma solidity 0.6.7;
 
-import "geb-treasury-reimbursement/math/GebMath.sol";
+import "../math/GebMath.sol";
 
 import "../medians/MakerMedian.sol";
 
@@ -29,5 +29,31 @@ contract MakerResolver is GebMath {
         assembly{ z := and(x, y)}
     }
 
-    
+    // --- Main Getters ---
+    /**
+    * @notice Fetch the latest medianResult or revert if is is null, if the price is stale or if makerMedian is null
+    **/
+    function read() external view returns (uint256) {
+        // The relayer must not be null
+        require(address(makerMedian) != address(0), "MakerResolver/null-median");
+
+        // Fetch values from mAKER
+        uint256 medianPrice      = makerMedian.read();
+        uint256 medianTimestamp  = uint256(makerMedian.age());
+
+        require(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), "MakerResolver/invalid-price-feed");
+        return medianPrice;
+    }
+    /**
+    * @notice Fetch the latest medianResult and whether it is valid or not
+    **/
+    function getResultWithValidity() external view returns (uint256, bool) {
+        if (address(makerMedian) == address(0)) return (0, false);
+
+        // Fetch values from Maker
+        (uint256 medianPrice, bool isValid) = makerMedian.peek();
+        uint256 medianTimestamp             = uint256(makerMedian.age());
+
+        return (medianPrice, both(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), isValid));
+    }
 }

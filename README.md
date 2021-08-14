@@ -1,6 +1,6 @@
 # GEB Fallback Median
 
-This repository consists in an oracle model that has two core price feeds as well as a fallback feed used to provide data for a GEB deployment.
+This repository consists of an oracle model that has two core price feeds as well as a fallback feed used to provide collateral price data for a GEB deployment.
 
 ## Mechanism Overview
 

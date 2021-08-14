@@ -1,0 +1,61 @@
+pragma solidity 0.6.7;
+
+import "../math/GebMath.sol";
+
+import "../medians/TellorMedian.sol";
+
+contract TellorResolver is GebMath {
+    // --- Variables ---
+    TellorMedian public tellorMedian;
+
+    // Time threshold after which a Tellor response is considered stale
+    uint256 public staleThreshold;
+    // Id used to fetch the price we need from Tellor
+    uint256 public requestId;
+
+    bytes32 public symbol = "ETHUSD";
+
+    constructor(
+      address median,
+      uint256 requestId_,
+      uint256 staleThreshold_
+    ) public {
+        require(median != address(0), "TellorResolver/null-median");
+        require(staleThreshold_ > 0, "TellorResolver/null-stale-threshold");
+
+        requestId       = requestId_;
+        staleThreshold  = staleThreshold_;
+        tellorMedian    = TellorMedian(median);
+    }
+
+    // --- General Utils ---
+    function both(bool x, bool y) internal pure returns (bool z) {
+        assembly{ z := and(x, y)}
+    }
+
+    // --- Main Getters ---
+    /**
+    * @notice Fetch the latest medianResult or revert if is is null, if the price is stale or if makerMedian is null
+    **/
+    function read() external view returns (uint256) {
+        // The relayer must not be null
+        require(address(tellorMedian) != address(0), "TellorResolver/null-median");
+
+        // Fetch values from Tellor
+        (, uint256 medianPrice, uint256 medianTimestamp) = tellorMedian.getCurrentValue(requestId);
+
+        require(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), "TellorResolver/invalid-price-feed");
+        return medianPrice;
+    }
+    /**
+    * @notice Fetch the latest medianResult and whether it is valid or not
+    **/
+    function getResultWithValidity() external view returns (uint256, bool) {
+        if (address(tellorMedian) == address(0)) return (0, false);
+
+        // Fetch values from Tellor
+        (, uint256 medianPrice, uint256 medianTimestamp) = tellorMedian.getCurrentValue(requestId);
+
+        return (medianPrice, both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold));
+    }
+}
