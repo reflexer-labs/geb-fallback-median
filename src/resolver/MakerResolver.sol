@@ -54,6 +54,10 @@ contract MakerResolver is GebMath {
         (uint256 medianPrice, bool isValid) = makerMedian.peek();
         uint256 medianTimestamp             = uint256(makerMedian.age());
 
-        return (medianPrice, both(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), isValid));
+        // Check validity and set price accordingly
+        bool valid  = both(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), isValid);
+        medianPrice = (valid) ? medianPrice : 0;
+
+        return (medianPrice, valid);
     }
 }

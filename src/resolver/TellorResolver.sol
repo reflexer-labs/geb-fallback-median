@@ -56,6 +56,10 @@ contract TellorResolver is GebMath {
         // Fetch values from Tellor
         (, uint256 medianPrice, uint256 medianTimestamp) = tellorMedian.getCurrentValue(requestId);
 
-        return (medianPrice, both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold));
+        // Check validity and set price accordingly
+        bool valid  = both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold);
+        medianPrice = (valid) ? medianPrice : 0;
+
+        return (medianPrice, valid);
     }
 }

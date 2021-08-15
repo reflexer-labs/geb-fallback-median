@@ -55,10 +55,17 @@ contract ChainlinkResolver is GebMath {
     function getResultWithValidity() external view returns (uint256, bool) {
         if (address(chainlinkMedian) == address(0)) return (0, false);
 
+        // If result is too large, return false
+        if (uint(-1) / 10 ** uint(multiplier) < uint(chainlinkMedian.latestAnswer())) return (0, false);
+
         // Fetch values from Chainlink
         uint256 medianPrice     = multiply(uint(chainlinkMedian.latestAnswer()), 10 ** uint(multiplier));
         uint256 medianTimestamp = chainlinkMedian.latestTimestamp();
 
-        return (medianPrice, both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold));
+        // Check validity and set price accordingly
+        bool valid  = both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold);
+        medianPrice = (valid) ? medianPrice : 0;
+
+        return (medianPrice, valid);
     }
 }
