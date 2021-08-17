@@ -95,15 +95,20 @@ contract FallbackedMedian is GebMath {
     **/
     function read() external view returns (uint256) {
         // Fetch the aggregator value
-        uint256 aggregatorPrice = aggregator.read();
+        try aggregator.read() returns (uint256 aggregatorPrice) {
+          if (aggregatorPrice == 0) {
+            // Fetch the fallback price
+            uint256 fallbackPrice = fallbackFeed.read();
+            require(fallbackPrice > 0, "FallbackedMedian/both-prices-null");
+            return fallbackPrice;
+          }
 
-        if (aggregatorPrice == 0) {
+          return aggregatorPrice;
+        } catch (bytes memory revertReason) {
           // Fetch the fallback price
           uint256 fallbackPrice = fallbackFeed.read();
           require(fallbackPrice > 0, "FallbackedMedian/both-prices-null");
           return fallbackPrice;
-        } else {
-          return aggregatorPrice;
         }
     }
     /**
