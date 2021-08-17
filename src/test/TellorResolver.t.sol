@@ -12,15 +12,20 @@ contract TellorAggregator {
     uint256 price;
     uint256 age;
 
+    bool ifRetrieve = true;
+
     function setAge(uint256 data) external {
         age = data;
+    }
+    function toggleRetrieve() external {
+        ifRetrieve = !ifRetrieve;
     }
     function modifyParameters(bytes32 parameter, uint256 data) external {
         price = data;
     }
 
-    function getCurrentValue(uint256 _requestId) external view returns (bool, uint256, uint256) {
-        return (true, price, age);
+    function retrieveData(uint256 _requestId, uint256) external view returns (bool, uint256, uint256) {
+        return (ifRetrieve, price, age);
     }
 }
 
@@ -32,6 +37,7 @@ contract TellorResolverTest is DSTest {
     uint256 price          = 1 ether;
     uint256 startTime      = 1577836800;
     uint256 staleThreshold = 6 hours;
+    uint256 delay          = 30 minutes;
 
     TellorAggregator aggregator;
     TellorResolver resolver;
@@ -48,6 +54,7 @@ contract TellorResolverTest is DSTest {
 
         resolver   = new TellorResolver(
           address(aggregator),
+          delay,
           1,
           staleThreshold
         );
@@ -57,15 +64,16 @@ contract TellorResolverTest is DSTest {
         assertEq(uint(resolver.staleThreshold()), uint(staleThreshold));
         assertEq(address(resolver.tellorMedian()), address(aggregator));
     }
-
-
-
     function test_read() public {
         uint256 price = resolver.read();
         assertEq(price, 1 ether);
     }
     function testFail_read_old_response() public {
         aggregator.setAge(uint32(now - staleThreshold - 1));
+        uint256 price = resolver.read();
+    }
+    function testFail_read_ifretrieve_false() public {
+        aggregator.toggleRetrieve();
         uint256 price = resolver.read();
     }
     function test_read_feed_too_large() public {
@@ -81,6 +89,13 @@ contract TellorResolverTest is DSTest {
         (uint256 price, bool valid) = resolver.getResultWithValidity();
         assertEq(price, 1 ether);
         assertTrue(valid);
+    }
+    function test_getResultWithValidity_ifretrieve_false() public {
+        aggregator.toggleRetrieve();
+        
+        (uint256 price, bool valid) = resolver.getResultWithValidity();
+        assertEq(price, 0);
+        assertTrue(!valid);
     }
     function test_getResultWithValidity_old_response() public {
         aggregator.setAge(uint32(now - staleThreshold - 1));

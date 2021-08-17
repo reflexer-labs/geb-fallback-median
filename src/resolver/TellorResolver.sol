@@ -12,18 +12,25 @@ contract TellorResolver is GebMath {
     uint256 public staleThreshold;
     // Id used to fetch the price we need from Tellor
     uint256 public requestId;
+    // How far in the past is the price that the contract requests
+    uint256 public delay;
 
     bytes32 public symbol = "ETHUSD";
 
+    uint256 public constant MAX_DELAY = 6 hours;
+
     constructor(
       address median,
+      uint256 delay_,
       uint256 requestId_,
       uint256 staleThreshold_
     ) public {
         require(median != address(0), "TellorResolver/null-median");
         require(staleThreshold_ > 0, "TellorResolver/null-stale-threshold");
+        require(both(delay_ > 0, delay_ <= MAX_DELAY), "TellorResolver/invalid-delay");
 
         requestId       = requestId_;
+        delay           = delay_;
         staleThreshold  = staleThreshold_;
         tellorMedian    = TellorMedian(median);
     }
@@ -42,8 +49,9 @@ contract TellorResolver is GebMath {
         require(address(tellorMedian) != address(0), "TellorResolver/null-median");
 
         // Fetch values from Tellor
-        (, uint256 medianPrice, uint256 medianTimestamp) = tellorMedian.getCurrentValue(requestId);
+        (bool ifRetrieve, uint256 medianPrice, uint256 medianTimestamp) = tellorMedian.retrieveData(requestId, subtract(now, delay));
 
+        require(ifRetrieve, "TellorResolver/faulty-retrieval");
         require(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), "TellorResolver/invalid-price-feed");
         return medianPrice;
     }
@@ -54,12 +62,12 @@ contract TellorResolver is GebMath {
         if (address(tellorMedian) == address(0)) return (0, false);
 
         // Fetch values from Tellor
-        (, uint256 medianPrice, uint256 medianTimestamp) = tellorMedian.getCurrentValue(requestId);
+        (bool ifRetrieve, uint256 medianPrice, uint256 medianTimestamp) = tellorMedian.retrieveData(requestId, subtract(now, delay));
 
         // Check validity and set price accordingly
         bool valid  = both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold);
-        medianPrice = (valid) ? medianPrice : 0;
+        medianPrice = both(valid, ifRetrieve) ? medianPrice : 0;
 
-        return (medianPrice, valid);
+        return (medianPrice, both(valid, ifRetrieve));
     }
 }
