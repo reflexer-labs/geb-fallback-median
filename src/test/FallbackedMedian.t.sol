@@ -64,7 +64,7 @@ contract TellorAggregator {
         price = data;
     }
 
-    function retrieveData(uint256 _requestId, uint256) external view returns (bool, uint256, uint256) {
+    function getDataBefore(uint256 _requestId, uint256) external view returns (bool, uint256, uint256) {
         return (ifRetrieve, price, age);
     }
 }

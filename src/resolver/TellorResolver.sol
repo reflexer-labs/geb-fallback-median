@@ -49,7 +49,7 @@ contract TellorResolver is GebMath {
         require(address(tellorMedian) != address(0), "TellorResolver/null-median");
 
         // Fetch values from Tellor
-        try tellorMedian.retrieveData(requestId, subtract(now, delay))
+        try tellorMedian.getDataBefore(requestId, subtract(now, delay))
             returns (bool ifRetrieve, uint256 medianPrice, uint256 medianTimestamp) {
           require(ifRetrieve, "TellorResolver/faulty-retrieval");
           require(both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold), "TellorResolver/invalid-price-feed");
@@ -65,7 +65,7 @@ contract TellorResolver is GebMath {
         if (address(tellorMedian) == address(0)) return (0, false);
 
         // Fetch values from Tellor
-        try tellorMedian.retrieveData(requestId, subtract(now, delay))
+        try tellorMedian.getDataBefore(requestId, subtract(now, delay))
             returns (bool ifRetrieve, uint256 medianPrice, uint256 medianTimestamp) {
           // Check validity and set price accordingly
           bool valid  = both(medianPrice > 0, subtract(now, medianTimestamp) <= staleThreshold);
